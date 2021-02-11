@@ -42,7 +42,7 @@ def read_user(credentials: HTTPBasicCredentials = Depends(security)):
 
     hashed_password = user_info[5]
     password = credentials.password.encode()
-    if bcrypt.checkpw(password,hashed_password):
+    if bcrypt.checkpw(password, hashed_password):
         return {'email': user_info[0],
                 'firstname': user_info[1],
                 'lastname': user_info[2],
@@ -63,16 +63,13 @@ def update_user(firstname: str, lastname: str, password: str, credentials: HTTPB
             status_code=status.HTTP_400_BAD_REQUEST
         )
 
-    hashed_password = user_info[5]
-    pw = credentials.password.encode()
-    if bcrypt.checkpw(pw,hashed_password):
-        conn = sqlite3.connect('Users.db')
-        c = conn.cursor()
-        password = encryptpassword(password)
-        c.execute("UPDATE users SET first = ?, last = ?, password = ?, account_updated = 1 WHERE email = ? ",
+    conn = sqlite3.connect('Users.db')
+    c = conn.cursor()
+    password = encryptpassword(password)
+    c.execute("UPDATE users SET first = ?, last = ?, password = ?, account_updated = 1 WHERE email = ? ",
               (firstname, lastname, password, credentials.username))
-        conn.commit()
-        return "Success"
+    conn.commit()
+    return "Success"
 
 
 @app.post("/createuser")  # public
