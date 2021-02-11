@@ -15,6 +15,11 @@ security = HTTPBasic()
 regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
 pwregex = re.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$")
 
+def validatePassword(password):
+    pwregex = re.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$")
+    if not re.search(pwregex, password):
+        return "weak password"
+    return "ok"
 
 class User(BaseModel):
     email: str
