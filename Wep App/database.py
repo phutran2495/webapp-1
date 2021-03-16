@@ -1,7 +1,7 @@
 import mysql.connector
 import os
 
-dbendpoint = os.environ.get('dbendpoint')
+dbendpoint = os.environ.get('dbendpoint').split(":")[0]
 dbusername = os.environ.get('dbusername')
 dbpassword = os.environ.get('dbpassword')
 

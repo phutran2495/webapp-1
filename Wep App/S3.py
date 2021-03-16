@@ -7,7 +7,7 @@ s3bucket = os.environ.get('bucketname')
 
 s3_client = boto3.client('s3')
 
-def upload_file(file, bucketname= s3bucket, object_name=None):
+def upload_file(file, bucket, object_name=None):
     try:
         response = s3_client.put_object(Body=file, Bucket=bucket, Key=object_name)
         return True
@@ -15,7 +15,7 @@ def upload_file(file, bucketname= s3bucket, object_name=None):
         return False
 
 
-def delete_file(bucket_name = s3bucket, key):
+def delete_file(bucket_name, key):
     try:
         response = s3_client.delete_object(
             Bucket=bucket_name,
