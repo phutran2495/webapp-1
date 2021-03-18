@@ -15,7 +15,7 @@ hooks:
     timeout: 100
     runas: ubuntu
 
-  ApllicationStart:
+  ApplicationStart:
   - location: codedeploy/applicationStart.sh
     timeout: 100
     runas: ubuntu
