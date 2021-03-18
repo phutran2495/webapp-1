@@ -1,0 +1,60 @@
+# after merge 
+name: Build & Deploy WebApp
+
+env:
+  ARTIFACT_NAME: csye6225-webapp-${{ github.sha }}.zip # zip folder on the root level of s3-codedeploy-bucket
+  CODEDEPLOY_APPLICATION_NAME: csye6225-webapp
+  CODEDEPLOY_APPLICATION_DEPLOYMENT_GROUP_NAME: csye6225-webapp-deployment
+  AWS_REGION: us-east-1
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci_cd:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2 # check into github repository
+
+    - name: Build Deployment Artifact #  zip the wepapp folder, appspec and its bash scripts files to ./codedeply_artifact                  
+      run: |
+        mkdir codedeploy_artifact
+        zip -r ${{ env. ARTIFACT_NAME }} application codedeploy/*.sh appspec.yml  
+        pwd
+        ls -la
+        mv ${{ env.ARTIFACT_NAME }} codedeploy_artifact/
+        ls -la
+        pwd
+    
+
+    - name: Configure AWS credentials # install and configure aws cli
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_region: ${{ env.AWS_REGION }}
+
+
+    - name: Copy Artifact to S3  #move the zip folder to S3-CodeDeploy-bucket with aws cli
+      run: |
+        aws s3 sync ./codedeploy_artifact s3://${{ secrets.S3_CODEDEPLOY_BUCKET }}
+
+
+    - name: Codedeploy API call  # use aws codedeploy cli to deploy code application 
+      run: |
+        output=$(aws deploy create-deployment \
+          --application-name ${{ env.CODEDEPLOY_APPLICATION_NAME }} \
+          --deployment-config-name CodeDeployDefault.AllAtOnce \
+          --deployment-group-name ${{ CODEDEPLOY_APPLICATION_DEPLOYMENT_GROUP_NAME }}\
+          --s3-location bucket=${{ secrets.S3_CODEDEPLOY_BUCKET }},key=${{ env.ARTIFACT_NAME }},bundleType=zip \
+          --region ${{ env.AWS_REGION}} \
+          --output json  )
+
+          echo $output
+
+          dId=$(echo $output | jq -r '.deploymentId')
+
+          aws deploy wait deployment-successful --deployment-id $dId
+

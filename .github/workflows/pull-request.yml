@@ -1,0 +1,22 @@
+# before merge, run test and validate if the code is good
+name: running unit tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  run unittest script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2 # check into github repository
+    - name: set up python3
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+
+    - name: run test
+      run: |
+        cd application
+        python testcase.py
