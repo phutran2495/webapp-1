@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pkill -f /home/ubuntu/main.py
+ps -ef | grep "python3 main.py" | awk '{print $2}' | xargs sudo kill
