@@ -11,11 +11,11 @@ permissions:
 
 hooks:
   ApplicationStop:
-  - location: /home/ubuntu/app/codedeploy/applicationStop.sh
+  - location: ./codedeploy/applicationStop.sh
     timeout: 100
     runas: ubuntu
 
   ApllicationStart:
-  - location: /home/ubuntu/app/codedeploy/applicationStart.sh
+  - location: ./codedeploy/applicationStart.sh
     timeout: 100
     runas: ubuntu
