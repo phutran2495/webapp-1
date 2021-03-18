@@ -11,16 +11,11 @@ permissions:
 
 hooks:
   ApplicationStop:
-  - location: ./codedeploy/applicationStop.sh
-    timeout: 100
-    runas: ubuntu
-
-  AfterInstall:
-  - location: ./codedeploy/afterInstall.sh
+  - location: codedeploy/applicationStop.sh
     timeout: 100
     runas: ubuntu
 
   ApllicationStart:
-  - location: ./codedeploy/applicationStart.sh
+  - location: codedeploy/applicationStart.sh
     timeout: 100
     runas: ubuntu
