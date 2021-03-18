@@ -2,7 +2,7 @@ version: 0.0
 os: linux
 
 files:
-  - source: ./application
+  - source: ./application/*
     destination: /home/ubuntu
 
 hooks:

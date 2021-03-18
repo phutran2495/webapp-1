@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 /home/ubuntu/application/main.py
+python3 /home/ubuntu/main.py

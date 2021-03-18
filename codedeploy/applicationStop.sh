@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pkill -f /home/ubuntu/application/main.py
+pkill -f /home/ubuntu/main.py
