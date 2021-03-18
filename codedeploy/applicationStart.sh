@@ -1,4 +1,4 @@
 #!/bin/bash
 
 pwd
-python3 application/main.py
+python3 /home/ubuntu/app/application/main.py
