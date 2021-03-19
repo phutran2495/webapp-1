@@ -66,7 +66,7 @@ def validateCredential(credentials: HTTPBasicCredentials = Depends(security)):
 
 
 @app.post("/books/{book_id}/image")
-def add_book_images(book_id: str, file: UploadFile = File(...), user_info=Depends(validateCredential)):
+def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_info=Depends(validateCredential)):
     if not validate_bookid_userid(book_id,user_info[6]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
