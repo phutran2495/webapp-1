@@ -8,15 +8,15 @@ dbpassword = os.environ.get('dbpassword')
 
 def connect_mysql():
     conn = mysql.connector.connect(
-        host=dbendpoint, user=dbusername, password=dbpassword,
+        host="csye6225.cj010qolxn0n.us-east-1.rds.amazonaws.com", user="csye6225", password="Edward123",
     )
 
     c = conn.cursor()
     c.execute("CREATE DATABASE if not exists CSYE6225")
     conn1 = mysql.connector.connect(
-        host=dbendpoint,
-        user=dbusername,
-        password=dbpassword,
+        host="csye6225.cj010qolxn0n.us-east-1.rds.amazonaws.com",
+        user="csye6225",
+        password="Edward123",
         database="CSYE6225"
     )
     c = conn1.cursor()
