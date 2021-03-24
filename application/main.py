@@ -8,9 +8,12 @@ import re
 import bcrypt
 import uvicorn
 import uuid
-
+from statsd import StatsClient
 from S3 import upload_file, delete_file
 
+
+
+statsd_client = StatsClient()
 app = FastAPI()
 security = HTTPBasic()
 
@@ -209,24 +212,29 @@ def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredenti
 @app.get("/books")
 def get_books():
     result = []
-    try:
-        books = getbooks()
-        for book in books:
-            book = {
-                "id": book[0],
-                "title": book[1],
-                "author": book[2],
-                "isbn": book[3],
-                "published_date": book[4],
-                "book_created": book[5],
-                "user_id": book[6]
-            }
-            result.append(book)
-        return result
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST
-        )
+    with statsd_client.timer('get_all_books_api_timer'):
+        try:
+        
+            books = getbooks()
+            for book in books:
+                book = {
+                    "id": book[0],
+                    "title": book[1],
+                    "author": book[2],
+                    "isbn": book[3],
+                    "published_date": book[4],
+                    "book_created": book[5],
+                    "user_id": book[6]
+                }
+                result.append(book)
+            pipe = statsd_client.pipeline()
+            pipe.incr('get_acall_books_api_calls')
+            pipe.send()
+            return result
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
 
 @app.post("/createuser")  # public
