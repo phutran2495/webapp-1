@@ -3,7 +3,7 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 
-s3bucket = os.environ.get('bucketname')
+s3bucket = os.environ.get('bucketname').split(:)[0]
 
 s3_client = boto3.client('s3')
 
