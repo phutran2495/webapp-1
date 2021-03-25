@@ -10,12 +10,13 @@ import uvicorn
 import uuid
 from statsd import StatsClient
 from S3 import upload_file, delete_file
-
+import logging
 
 
 statsd_client = StatsClient()
 app = FastAPI()
 security = HTTPBasic()
+
 
 regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
 pwregex = re.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$")
@@ -79,7 +80,8 @@ def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_i
     contents = file.file.read()
     image_id = str(uuid.uuid1())
     objectname = book_id + '/' + image_id + "/" + file.filename
-    response = upload_file(contents,'webapp.phu.tran',objectname)
+    with statsd_client.timer('s3_bucket_timer'):
+        response = upload_file(contents,'webapp.phu.tran',objectname)
 
     insert_object_name( image_id, book_id, objectname, user_info[6])
     if response:
@@ -239,6 +241,9 @@ def get_books():
 
 @app.post("/createuser")  # public
 def create_account(user: User):
+    pipe = statsd_client.pipeline()
+    pipe.incr('create_user_api_calls')
+    pipe.send()
     userid = uuid.uuid1()
     now = dt.datetime.now()
     pwd = encryptpassword(user.password)
@@ -246,14 +251,14 @@ def create_account(user: User):
         return "invalid email"
     if not re.search(pwregex, user.password):
         return "weak password"
-
-    try:
-        insert_user(str(userid), user.email, user.firstname, user.lastname, pwd, now)
-        return "success"
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST
-        )
+    with statsd_client.timer('create_account_api_timer'):
+        try:
+            insert_user(str(userid), user.email, user.firstname, user.lastname, pwd, now)
+            return "success"
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
 
 if __name__ == "__main__":
