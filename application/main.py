@@ -12,8 +12,9 @@ from statsd import StatsClient
 from S3 import upload_file, delete_file
 import logging
 
-
-statsd_client = StatsClient()
+logging.basicConfig(filename="/home/ubuntu/csye6225.log", level=logging.DEBUG)
+logger = logging.getLogger()
+statsd_client = StatsClient('localhost', 8125)
 app = FastAPI()
 security = HTTPBasic()
 
@@ -213,6 +214,7 @@ def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredenti
 
 @app.get("/books")
 def get_books():
+    logger.info("this is logger message")
     result = []
     with statsd_client.timer('get_all_books_api_timer'):
         try:
