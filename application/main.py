@@ -12,7 +12,7 @@ from statsd import StatsClient
 from S3 import upload_file, delete_file
 import logging
 
-logging.basicConfig(filename="/home/ubuntu/csye6225.log", level=logging.DEBUG)
+logging.basicConfig(filename="/home/ubuntu/csye6225.log", level=logging.INFO)
 logger = logging.getLogger()
 statsd_client = StatsClient('localhost', 8125)
 app = FastAPI()
@@ -72,29 +72,33 @@ def validateCredential(credentials: HTTPBasicCredentials = Depends(security)):
 
 @app.post("/books/{book_id}/image")
 def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_info=Depends(validateCredential)):
-    if not validate_bookid_userid(book_id,user_info[6]):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="book id does not match with your account"
-        )
+    logger.info("a user has accessed add_book_images_by_bookid endpoint")
 
-    contents = file.file.read()
-    image_id = str(uuid.uuid1())
-    objectname = book_id + '/' + image_id + "/" + file.filename
-    with statsd_client.timer('s3_bucket_timer'):
-        response = upload_file(contents,'webapp.phu.tran',objectname)
+    with statsd_client.timer('add_book_images_api_timer'):
+        if not validate_bookid_userid(book_id,user_info[6]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="book id does not match with your account"
+            )
 
-    insert_object_name( image_id, book_id, objectname, user_info[6])
-    if response:
-        return {"filename": file.filename,
-                "s3_object_name": objectname,
-                "image_id": image_id,
-                "created_date": dt.datetime.now(),
-                "user_id": user_info[6]}
+        contents = file.file.read()
+        image_id = str(uuid.uuid1())
+        objectname = book_id + '/' + image_id + "/" + file.filename
+        with statsd_client.timer('s3_bucket_timer'):
+            response = upload_file(contents,'webapp.phu.tran',objectname)
+
+        insert_object_name( image_id, book_id, objectname, user_info[6])
+        if response:
+            return {"filename": file.filename,
+                    "s3_object_name": objectname,
+                    "image_id": image_id,
+                    "created_date": dt.datetime.now(),
+                    "user_id": user_info[6]}
 
 
 @app.delete("/books/{book_id}/image/{image_id}")
 def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredential)):
+    logger.info("a user has accessed delete_image endpoint")
     if not validate_bookid_userid(book_id, user_info[6]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -111,6 +115,7 @@ def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredenti
 
 @app.delete("/books/{id}")
 def delete_book(id: str):
+    logger.info("a user has accessed delete_book endpoint")
     try:
         conn = connect_mysql()
         c = conn.cursor()
@@ -126,6 +131,7 @@ def delete_book(id: str):
 
 @app.get("/books/{id}")
 def get_book(id: str, user_info=Depends(validateCredential)):
+    logger.info("a user has accessed get_book endpoint")
     try:
         book = read_book(id)
         return {"id": book[0],
@@ -144,55 +150,69 @@ def get_book(id: str, user_info=Depends(validateCredential)):
 
 @app.post("/books")
 def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
+    logger.info("a user has accessed create_book endpoint")
+    pipe = statsd_client.pipeline()
+    pipe.incr('create_book_calls')
+    pipe.send()
+
     bookid = str(uuid.uuid1())
     book_created = dt.datetime.now()
     user_id = user_info[-1]
-
-    try:
-        insert_book(bookid, book_info.title, book_info.author, book_info.isbn,
-                    book_info.published_date, str(book_created), user_id)
-        return {"id": bookid,
-                "title": book_info.title,
-                "author": book_info.author,
-                "isbn": book_info.isbn,
-                "published_date": book_info.published_date,
-                "book_created": book_created,
-                "user_id": user_id}
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='something wrong with create the book'
-        )
+    with statsd_client.timer('create_book_api_timer'):
+        try:
+            insert_book(bookid, book_info.title, book_info.author, book_info.isbn,
+                        book_info.published_date, str(book_created), user_id)
+            return {"id": bookid,
+                    "title": book_info.title,
+                    "author": book_info.author,
+                    "isbn": book_info.isbn,
+                    "published_date": book_info.published_date,
+                    "book_created": book_created,
+                    "user_id": user_id}
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='something wrong with create the book'
+            )
 
 
 @app.get("/user/self")  # protected
 def read_user(credentials: HTTPBasicCredentials = Depends(security)):
-    try:
-        user_info = get_user(credentials.username)
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST
-        )
-    print(user_info)
-    hashed_password = user_info[5]
-    password = credentials.password.encode('utf8')
-    print(type(password))
-    if bcrypt.checkpw(password, hashed_password.encode()):
-        return {'email': user_info[0],
-                'firstname': user_info[1],
-                'lastname': user_info[2],
-                'account_created': user_info[3],
-                'account_updated': user_info[4],
-                'user_id': user_info[6]
-                }
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST
-        )
+    logger.info("a user has accessed read_user account")
+    pipe = statsd_client.pipeline()
+    pipe.incr('get_read_user_calls')
+    pipe.send()
+    with statsd_client.timer('read_user_api_timer'):
+        try:
+            user_info = get_user(credentials.username)
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        print(user_info)
+        hashed_password = user_info[5]
+        password = credentials.password.encode('utf8')
+        print(type(password))
+        if bcrypt.checkpw(password, hashed_password.encode()):
+            return {'email': user_info[0],
+                    'firstname': user_info[1],
+                    'lastname': user_info[2],
+                    'account_created': user_info[3],
+                    'account_updated': user_info[4],
+                    'user_id': user_info[6]
+                    }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
 
 @app.put("/user/self")  # protected
 def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredentials = Depends(security)):
+    logger.info("a user has accessed update_user_account endpoint")
+    pipe = statsd_client.pipeline()
+    pipe.incr('get_update_user_account_calls')
+    pipe.send()
     try:
         user_info = get_user(credentials.username)
     except:
@@ -214,7 +234,7 @@ def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredenti
 
 @app.get("/books")
 def get_books():
-    logger.info("this is logger message")
+    logger.info("a user has accessed get_books endpoint")
     result = []
     with statsd_client.timer('get_all_books_api_timer'):
         try:
@@ -232,7 +252,7 @@ def get_books():
                 }
                 result.append(book)
             pipe = statsd_client.pipeline()
-            pipe.incr('get_acall_books_api_calls')
+            pipe.incr('get_books_api_calls')
             pipe.send()
             return result
         except:
@@ -243,24 +263,26 @@ def get_books():
 
 @app.post("/createuser")  # public
 def create_account(user: User):
+    logger.info("a user has accessed create_account endpoint")
     pipe = statsd_client.pipeline()
     pipe.incr('create_user_api_calls')
     pipe.send()
-    userid = uuid.uuid1()
-    now = dt.datetime.now()
-    pwd = encryptpassword(user.password)
-    if not re.search(regex, user.email):
-        return "invalid email"
-    if not re.search(pwregex, user.password):
-        return "weak password"
-    with statsd_client.timer('create_account_api_timer'):
-        try:
-            insert_user(str(userid), user.email, user.firstname, user.lastname, pwd, now)
-            return "success"
-        except:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+    with statsd_client.timer('create_user_api_timer'):
+        userid = uuid.uuid1()
+        now = dt.datetime.now()
+        pwd = encryptpassword(user.password)
+        if not re.search(regex, user.email):
+            return "invalid email"
+        if not re.search(pwregex, user.password):
+            return "weak password"
+        with statsd_client.timer('create_account_api_timer'):
+            try:
+                insert_user(str(userid), user.email, user.firstname, user.lastname, pwd, now)
+                return "success"
+            except:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
 
 
 if __name__ == "__main__":
