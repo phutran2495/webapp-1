@@ -73,6 +73,9 @@ def validateCredential(credentials: HTTPBasicCredentials = Depends(security)):
 @app.post("/books/{book_id}/image")
 def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_info=Depends(validateCredential)):
     logger.info("a user has accessed add_book_images_by_bookid endpoint")
+    pipe = statsd_client.pipeline()
+    pipe.incr('add_book_image_counts')
+    pipe.send()
 
     with statsd_client.timer('add_book_images_api_timer'):
         if not validate_bookid_userid(book_id,user_info[6]):
@@ -99,6 +102,10 @@ def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_i
 @app.delete("/books/{book_id}/image/{image_id}")
 def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredential)):
     logger.info("a user has accessed delete_image endpoint")
+    pipe = statsd_client.pipeline()
+    pipe.incr('delete_image_counts')
+    pipe.send()
+
     if not validate_bookid_userid(book_id, user_info[6]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -116,6 +123,10 @@ def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredenti
 @app.delete("/books/{id}")
 def delete_book(id: str):
     logger.info("a user has accessed delete_book endpoint")
+    pipe = statsd_client.pipeline()
+    pipe.incr('delete_book_counts')
+    pipe.send()
+
     try:
         conn = connect_mysql()
         c = conn.cursor()
@@ -132,6 +143,10 @@ def delete_book(id: str):
 @app.get("/books/{id}")
 def get_book(id: str, user_info=Depends(validateCredential)):
     logger.info("a user has accessed get_book endpoint")
+    pipe = statsd_client.pipeline()
+    pipe.incr('get_book_counts')
+    pipe.send()
+
     try:
         book = read_book(id)
         return {"id": book[0],
@@ -152,12 +167,13 @@ def get_book(id: str, user_info=Depends(validateCredential)):
 def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
     logger.info("a user has accessed create_book endpoint")
     pipe = statsd_client.pipeline()
-    pipe.incr('create_book_calls')
+    pipe.incr('create_book_counts')
     pipe.send()
 
     bookid = str(uuid.uuid1())
     book_created = dt.datetime.now()
     user_id = user_info[-1]
+
     with statsd_client.timer('create_book_api_timer'):
         try:
             insert_book(bookid, book_info.title, book_info.author, book_info.isbn,
@@ -180,8 +196,9 @@ def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
 def read_user(credentials: HTTPBasicCredentials = Depends(security)):
     logger.info("a user has accessed read_user account")
     pipe = statsd_client.pipeline()
-    pipe.incr('get_read_user_calls')
+    pipe.incr('read_user_counts')
     pipe.send()
+
     with statsd_client.timer('read_user_api_timer'):
         try:
             user_info = get_user(credentials.username)
@@ -211,8 +228,9 @@ def read_user(credentials: HTTPBasicCredentials = Depends(security)):
 def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredentials = Depends(security)):
     logger.info("a user has accessed update_user_account endpoint")
     pipe = statsd_client.pipeline()
-    pipe.incr('get_update_user_account_calls')
+    pipe.incr('update_user_account_count')
     pipe.send()
+
     try:
         user_info = get_user(credentials.username)
     except:
@@ -236,6 +254,7 @@ def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredenti
 def get_books():
     logger.info("a user has accessed get_books endpoint")
     result = []
+    
     with statsd_client.timer('get_all_books_api_timer'):
         try:
         
@@ -252,7 +271,7 @@ def get_books():
                 }
                 result.append(book)
             pipe = statsd_client.pipeline()
-            pipe.incr('get_books_api_calls')
+            pipe.incr('get_books_counts')
             pipe.send()
             return result
         except:
@@ -265,8 +284,9 @@ def get_books():
 def create_account(user: User):
     logger.info("a user has accessed create_account endpoint")
     pipe = statsd_client.pipeline()
-    pipe.incr('create_user_api_calls')
+    pipe.incr('create_user_counts')
     pipe.send()
+
     with statsd_client.timer('create_user_api_timer'):
         userid = uuid.uuid1()
         now = dt.datetime.now()
@@ -275,14 +295,14 @@ def create_account(user: User):
             return "invalid email"
         if not re.search(pwregex, user.password):
             return "weak password"
-        with statsd_client.timer('create_account_api_timer'):
-            try:
-                insert_user(str(userid), user.email, user.firstname, user.lastname, pwd, now)
-                return "success"
-            except:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
+        
+        try:
+            insert_user(str(userid), user.email, user.firstname, user.lastname, pwd, now)
+            return "success"
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
 
 if __name__ == "__main__":
