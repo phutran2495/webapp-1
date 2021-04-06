@@ -21,7 +21,7 @@ statsd_client = StatsClient('localhost', 8125)
 app = FastAPI()
 security = HTTPBasic()
 
-sns_client = boto3.client('sns',aws_access_key_id="AKIAIJ3J5S6QDES44SRQ",aws_secret_access_key="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")
+#sns_client = boto3.client('sns',aws_access_key_id="AKIAIJ3J5S6QDES44SRQ",aws_secret_access_key="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")
 
 
 
