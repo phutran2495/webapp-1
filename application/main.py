@@ -12,7 +12,7 @@ from statsd import StatsClient
 from S3 import upload_file, delete_file
 import logging
 import boto3
-import SNSWrapper from sns_utility
+from sns_utility import SNSWrapper
 
 
 logging.basicConfig(filename="/home/ubuntu/csye6225.log", level=logging.INFO)
@@ -126,17 +126,20 @@ def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredenti
     except:
         return "cannt find the book"
 
+
+
 @app.delete("/books/{id}")
-def delete_book(id: str):
+def delete_book(id: str, user_info=Depends(validateCredential)):
     logger.info("a user has accessed delete_book endpoint")
     pipe = statsd_client.pipeline()
     pipe.incr('delete_book_counts')
     pipe.send()
     bookid = id
+    useremail = user_info[0]
 
     sns_message = {
-    'recipient': user_from_db.username,
-    'message': 'Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
+    'recipient': useremail,
+    'message': 'You have deleted a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
     }
     sns_wrapper.publish_message(topic_arn="arn:aws:sns:us-east-1:709891834787:book_api_topic", message=sns_message)
 
@@ -188,10 +191,11 @@ def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
     bookid = str(uuid.uuid1())
     book_created = dt.datetime.now()
     user_id = user_info[-1]
+    useremail = user_info[0]
 
     sns_message = {
-    'recipient': user_from_db.username,
-    'message': 'Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
+    'recipient': useremail,
+    'message': 'You have created a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
     }
     sns_wrapper.publish_message(topic_arn="arn:aws:sns:us-east-1:709891834787:book_api_topic", message=sns_message)
 
@@ -272,7 +276,7 @@ def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredenti
     }
 
 
-@app.get("/books")
+@app.get("/books")  #public
 def get_books():
     logger.info("a user has accessed get_books endpoint")
     result = []
