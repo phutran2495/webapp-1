@@ -21,8 +21,8 @@ statsd_client = StatsClient('localhost', 8125)
 app = FastAPI()
 security = HTTPBasic()
 
-# client = boto3.client('sns')
-# sns_wrapper = SNSWrapper(client)
+client = boto3.client('sns')
+sns_wrapper = SNSWrapper(client)
 
 
 regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
