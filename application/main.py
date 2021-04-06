@@ -12,7 +12,7 @@ from statsd import StatsClient
 from S3 import upload_file, delete_file
 import logging
 import boto3
-from sns_utility import SNSWrapper
+
 
 
 logging.basicConfig(filename="/home/ubuntu/csye6225.log", level=logging.INFO)
@@ -21,8 +21,8 @@ statsd_client = StatsClient('localhost', 8125)
 app = FastAPI()
 security = HTTPBasic()
 
-# sns_client = boto3.client('sns')
-# sns_wrapper = SNSWrapper(client)
+sns_client = boto3.client('sns')
+
 
 
 regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
