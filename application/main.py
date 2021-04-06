@@ -22,7 +22,7 @@ app = FastAPI()
 security = HTTPBasic()
 
 sns_client = boto3.client('sns')
-
+sns_wrapper = SNSWrapper(client)
 
 
 regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
