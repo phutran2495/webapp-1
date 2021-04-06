@@ -135,13 +135,13 @@ def delete_book(id: str, user_info=Depends(validateCredential)):
     pipe.incr('delete_book_counts')
     pipe.send()
     bookid = id
-    useremail = user_info[0]
+    # useremail = user_info[0]
 
-    sns_message = {
-    'recipient': useremail,
-    'message': 'You have deleted a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
-    }
-    sns_wrapper.publish_message(topic_arn="arn:aws:sns:us-east-1:709891834787:book_api_topic", message=sns_message)
+    # sns_message = {
+    # 'recipient': useremail,
+    # 'message': 'You have deleted a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
+    # }
+    # sns_wrapper.publish_message(topic_arn="arn:aws:sns:us-east-1:709891834787:book_api_topic", message=sns_message)
 
 
     try:
@@ -191,13 +191,13 @@ def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
     bookid = str(uuid.uuid1())
     book_created = dt.datetime.now()
     user_id = user_info[-1]
-    useremail = user_info[0]
+    # useremail = user_info[0]
 
-    sns_message = {
-    'recipient': useremail,
-    'message': 'You have created a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
-    }
-    sns_wrapper.publish_message(topic_arn="arn:aws:sns:us-east-1:709891834787:book_api_topic", message=sns_message)
+    # sns_message = {
+    # 'recipient': useremail,
+    # 'message': 'You have created a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
+    # }
+    # sns_wrapper.publish_message(topic_arn="arn:aws:sns:us-east-1:709891834787:book_api_topic", message=sns_message)
 
     with statsd_client.timer('create_book_api_timer'):
 

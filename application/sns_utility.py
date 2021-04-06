@@ -10,8 +10,7 @@ class SNSWrapper:
     def publish_message(self, topic_arn, message):
         try:
             response = self.sns_resource.publish(TopicArn=topic_arn, Message=json.dumps(message))
-            message_id = response['MessageId']
-            return message_id
+           
         except ClientError:
             print("error occurred when sending message")
             
