@@ -11,12 +11,18 @@ import uuid
 from statsd import StatsClient
 from S3 import upload_file, delete_file
 import logging
+import boto3
+import json
+
 
 logging.basicConfig(filename="/home/ubuntu/csye6225.log", level=logging.INFO)
 logger = logging.getLogger()
 statsd_client = StatsClient('localhost', 8125)
 app = FastAPI()
 security = HTTPBasic()
+
+sns_client = boto3.client('sns', region_name='us-east-1')
+#
 
 
 regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
@@ -70,7 +76,7 @@ def validateCredential(credentials: HTTPBasicCredentials = Depends(security)):
     return user_info
 
 
-@app.post("/books/{book_id}/image")
+@app.post("/book/{book_id}/image")
 def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_info=Depends(validateCredential)):
     logger.info("a user has accessed add_book_images_by_bookid endpoint")
     pipe = statsd_client.pipeline()
@@ -99,7 +105,7 @@ def add_book_images_by_bookid(book_id: str, file: UploadFile = File(...), user_i
                     "user_id": user_info[6]}
 
 
-@app.delete("/books/{book_id}/image/{image_id}")
+@app.delete("/book/{book_id}/image/{image_id}")
 def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredential)):
     logger.info("a user has accessed delete_image endpoint")
     pipe = statsd_client.pipeline()
@@ -120,12 +126,23 @@ def delete_image(book_id: str, image_id: str, user_info=Depends(validateCredenti
     except:
         return "cannt find the book"
 
+
+
 @app.delete("/books/{id}")
-def delete_book(id: str):
+def delete_book(id: str, user_info=Depends(validateCredential)):
     logger.info("a user has accessed delete_book endpoint")
     pipe = statsd_client.pipeline()
     pipe.incr('delete_book_counts')
     pipe.send()
+    bookid = id
+    useremail = user_info[0]
+
+    sns_message = {
+    'recipient': useremail,
+    'message': 'You have deleted a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
+    }
+    sns_client.publish(TopicArn="arn:aws:sns:us-east-1:709891834787:book_api_topic", Message=json.dumps(sns_message))
+
 
     try:
         conn = connect_mysql()
@@ -140,12 +157,14 @@ def delete_book(id: str):
         )
 
 
-@app.get("/books/{id}")
+@app.get("/book/{id}")
 def get_book(id: str, user_info=Depends(validateCredential)):
     logger.info("a user has accessed get_book endpoint")
     pipe = statsd_client.pipeline()
     pipe.incr('get_book_counts')
     pipe.send()
+
+
 
     try:
         book = read_book(id)
@@ -163,18 +182,25 @@ def get_book(id: str, user_info=Depends(validateCredential)):
         )
 
 
-@app.post("/books")
+@app.post("/book")
 def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
     logger.info("a user has accessed create_book endpoint")
     pipe = statsd_client.pipeline()
     pipe.incr('create_book_counts')
     pipe.send()
-
     bookid = str(uuid.uuid1())
     book_created = dt.datetime.now()
     user_id = user_info[-1]
+    useremail = user_info[0]
+
+    sns_message = {
+    'recipient': useremail,
+    'message': 'You have created a book. Book id: ' + bookid + '\n ' + 'Book link: ' + "prod.phutran.me/book/" + bookid
+    }
+    sns_client.publish(TopicArn="arn:aws:sns:us-east-1:709891834787:book_api_topic", Message=json.dumps(sns_message))
 
     with statsd_client.timer('create_book_api_timer'):
+
         try:
             insert_book(bookid, book_info.title, book_info.author, book_info.isbn,
                         book_info.published_date, str(book_created), user_id)
@@ -250,7 +276,7 @@ def update_user_account(updatedInput: UpdateUser, credentials: HTTPBasicCredenti
     }
 
 
-@app.get("/books")
+@app.get("/books")  #public
 def get_books():
     logger.info("a user has accessed get_books endpoint")
     result = []
@@ -303,6 +329,7 @@ def create_account(user: User):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST
             )
+
 
 
 if __name__ == "__main__":
