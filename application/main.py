@@ -162,7 +162,7 @@ def get_book(id: str, user_info=Depends(validateCredential)):
             detail="Invalid book id"
         )
 
-### compare
+### compare endpoint
 @app.post("/books")
 def create_book(book_info: BookInput, user_info=Depends(validateCredential)):
     logger.info("a user has accessed create_book endpoint")
