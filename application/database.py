@@ -1,7 +1,7 @@
 import mysql.connector
 import os
 
-dbendpoint = os.environ.get('dbendpoint')
+dbendpoint = os.environ.get('dbendpoint')  
 dbusername = os.environ.get('dbusername')
 dbpassword = os.environ.get('dbpassword')
 
@@ -13,11 +13,14 @@ def connect_mysql():
 
     c = conn.cursor()
     c.execute("CREATE DATABASE if not exists CSYE6225")
+
+
     conn1 = mysql.connector.connect(
         host="csye6225.covikaif3ujw.us-east-1.rds.amazonaws.com",
         user="csye6225",
         password="Edward123",
-        database="CSYE6225"
+        database="CSYE6225",
+        ssl_ca = "rds-ca-2019-root.pem"
     )
     c = conn1.cursor()
     return conn1
