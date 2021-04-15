@@ -1,7 +1,10 @@
 # before merge, run test and validate if the code is good
 name: running unit tests
 
-
+on:
+  pull_request:
+    branches: [ main ] 
+    
 jobs:
   run-unittest-script:
     runs-on: ubuntu-latest
