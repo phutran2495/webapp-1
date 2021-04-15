@@ -19,7 +19,8 @@ def connect_mysql():
         host="csye6225.covikaif3ujw.us-east-1.rds.amazonaws.com",
         user="csye6225",
         password="Edward123",
-        database="CSYE6225"
+        database="CSYE6225",
+        ssl_ca = "rds-ca-2019-root.pem"
     )
     c = conn1.cursor()
     return conn1
